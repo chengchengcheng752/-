@@ -1,0 +1,1678 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1024">
+  <title>霓虹夜跑 · Codex 龙娘环球跑</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --night: #0b1024;
+      --panel: #161d3c;
+      --ink: #f5f1dc;
+      --soft: #a3aecd;
+      --mint: #72f1c4;
+      --pink: #ff72a9;
+      --lav: #c9b8f0;
+      --gold: #ffd36a;
+      --line: #2b3560;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+      background:
+        radial-gradient(ellipse at 50% 0%, #232b52 0, transparent 58%),
+        linear-gradient(180deg, #101733, var(--night) 74%);
+      color: var(--ink);
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    .cabinet { width: min(100%, 1060px); }
+    .masthead {
+      display: flex; justify-content: space-between; align-items: end;
+      gap: 20px; margin: 0 2px 13px;
+    }
+    .eyebrow {
+      color: var(--mint);
+      font: 700 11px/1.2 "Courier New", monospace;
+      letter-spacing: .17em; text-transform: uppercase;
+    }
+    h1 { margin: 5px 0 0; font-size: clamp(22px, 4vw, 32px); letter-spacing: .03em; }
+    .mast-note { color: var(--soft); font-size: 13px; text-align: right; }
+
+    .cabinet-frame {
+      padding: 12px; border: 1px solid #43507d; border-radius: 12px;
+      background: linear-gradient(145deg, #222c50, #141a34 70%);
+      box-shadow: 0 22px 70px #050816a8, inset 0 1px #ffffff12;
+    }
+    .bezel {
+      overflow: hidden; border: 1px solid #070c1e; border-radius: 6px;
+      background: #0e142c;
+      box-shadow: inset 0 0 0 3px #1d2547, inset 0 0 40px #060a18;
+    }
+    .statusbar {
+      min-height: 46px; display: flex; align-items: center;
+      justify-content: space-between; gap: 10px; padding: 7px 14px;
+      border-bottom: 1px solid #333e63; background: #151c39;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 8px; color: #d9e2ff;
+      font: 700 12px "Courier New", monospace; letter-spacing: .07em;
+      white-space: nowrap;
+    }
+    .brand-mark { width: 12px; height: 12px; background: var(--lav); box-shadow: 4px 4px 0 var(--mint); }
+    .stats { display: flex; gap: clamp(10px, 3vw, 26px); align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .stat {
+      display: flex; gap: 6px; align-items: baseline;
+      font: 700 12px "Courier New", monospace; color: var(--soft); white-space: nowrap;
+    }
+    .stat strong { color: var(--ink); font-size: 16px; font-variant-numeric: tabular-nums; }
+    .stat.best strong { color: var(--gold); }
+    .stat.city strong { color: var(--mint); font-size: 13px; }
+    .stat.lives strong { color: #ff93bd; font-size: 12px; letter-spacing: .04em; }
+
+    .screen { position: relative; background: #0f1630; }
+    canvas {
+      display: block; width: 100%; aspect-ratio: 16 / 9;
+      image-rendering: pixelated; image-rendering: crisp-edges;
+      touch-action: manipulation;
+    }
+    .scanline {
+      pointer-events: none; position: absolute; inset: 0; opacity: .1;
+      background: repeating-linear-gradient(0deg, transparent 0 3px, #05091a 3px 4px);
+      mix-blend-mode: multiply;
+    }
+    /* ---- title & overlay ---- */
+    .overlay {
+      position: absolute; inset: 0; display: grid;
+      /* safe center：内容超出时改为顶部对齐，避免按钮被裁掉 */
+      place-content: safe center;
+      place-items: center;
+      padding: 12px 16px; text-align: center; background: #080d20d9;
+      backdrop-filter: blur(2px); transition: opacity .18s ease;
+      overflow: auto;          /* 窗口过矮时仍可滚动到开始按钮 */
+      cursor: pointer;
+    }
+    .overlay[hidden] { display: none; }
+    .title-card { position: relative; max-width: 520px; cursor: default; padding-top: 20px; }
+    .creator-credit {
+      position: absolute; top: 0; right: 0; padding: 4px 7px;
+      color: var(--gold); background: #141a35d9; border: 1px solid #4a4568;
+      font: 700 10px "Courier New", monospace; letter-spacing: .04em;
+    }
+    .title-kicker {
+      color: var(--mint); font: 700 10px "Courier New", monospace;
+      letter-spacing: .28em; text-transform: uppercase;
+    }
+    .title-main {
+      margin: 5px 0 2px; font-size: clamp(26px, 5.6vw, 46px); line-height: 1.02;
+      letter-spacing: .02em; text-shadow: 3px 3px 0 #6b4f8c, 6px 6px 0 #2a2050;
+    }
+    .title-sub {
+      margin: 0 0 8px; color: var(--lav);
+      font: 700 11px/1.4 "Courier New", monospace; letter-spacing: .1em;
+    }
+    .title-route {
+      display: flex; justify-content: center; align-items: center;
+      gap: 6px; flex-wrap: wrap; margin: 0 0 10px;
+      font: 700 11px "Courier New", monospace; color: var(--soft);
+    }
+    .title-route b { color: var(--gold); font-weight: 700; }
+    .title-route i { color: #58628c; font-style: normal; }
+    .title-art { margin: 0 auto 10px; height: 68px; width: 184px; }
+    .title-art canvas { width: 184px; height: 68px; }
+
+    .rules {
+      display: grid; gap: 4px; margin: 0 auto 12px; max-width: 430px;
+      text-align: left; font-size: 12px; line-height: 1.45; color: #c2c9e0;
+    }
+    .rules div { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+    .rules span:first-child { flex: 0 0 auto; min-width: 66px; color: var(--mint); font: 700 11px "Courier New", monospace; }
+    .hint-space { margin: 8px 0 0; color: #7f8ab0; font: 700 10px "Courier New", monospace; letter-spacing: .12em; }
+
+    .dialog { max-width: 460px; padding: 18px 22px; }
+    .dialog h2 { margin: 7px 0; font-size: clamp(23px, 5vw, 38px); line-height: 1.05; text-shadow: 3px 3px 0 #744a8c; }
+    .dialog p { margin: 9px 0 15px; color: #c2c9e0; font-size: 13.5px; line-height: 1.55; }
+    .dialog-label { color: var(--mint); font: 700 11px "Courier New", monospace; letter-spacing: .2em; text-transform: uppercase; }
+    .exit-card { max-width: 420px; }
+    .exit-card p { color: #c2c9e0; }
+
+    .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .mode-row { display: flex; justify-content: center; gap: 8px; margin: 0 0 8px; }
+    .mode-button {
+      min-height: 34px; padding: 0 14px; border: 1px solid #424d76; border-radius: 3px;
+      background: #1d2547; color: #c2c9e0; font: 700 11px "Courier New", monospace;
+      cursor: pointer;
+    }
+    .mode-button[aria-pressed="true"] { border-color: var(--mint); color: var(--mint); background: #173149; box-shadow: inset 0 -2px var(--mint); }
+    .pixel-button {
+      min-height: 44px; padding: 0 20px; border: 0; border-radius: 3px;
+      background: var(--mint); color: #0e2135; box-shadow: 0 4px 0 #3b9480;
+      font: 800 13px "Courier New", monospace; letter-spacing: .06em;
+      cursor: pointer; touch-action: manipulation;
+    }
+    .pixel-button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .pixel-button:active { transform: translateY(3px); box-shadow: 0 1px 0 #3b9480; }
+    .pixel-button.ghost { background: #2b3560; color: #dfe5ff; box-shadow: 0 4px 0 #1b2246; }
+    .pixel-button.ghost:active { box-shadow: 0 1px 0 #1b2246; }
+
+    .footer {
+      display: flex; justify-content: space-between; gap: 12px; align-items: center;
+      padding: 12px 5px 1px; color: var(--soft); font-size: 12px;
+    }
+    .keycap {
+      display: inline-grid; min-width: 25px; height: 23px; place-items: center;
+      margin: 0 3px; padding: 0 6px; border: 1px solid #434f78;
+      border-bottom-width: 3px; border-radius: 4px; color: var(--ink);
+      background: #1d2547; font: 700 11px "Courier New", monospace;
+    }
+    .touch-hint { display: none; }
+    @media (max-width: 620px) {
+      body { padding: 16px 10px; }
+      .masthead { align-items: start; }
+      .mast-note { max-width: 112px; font-size: 11px; }
+      .cabinet-frame { padding: 7px; }
+      .statusbar { min-height: 40px; padding: 6px 9px; }
+      .brand { font-size: 10px; }
+      .stats { gap: 9px; }
+      .stat { gap: 4px; font-size: 10px; }
+      .stat strong { font-size: 14px; }
+      .stat.city strong { font-size: 11px; }
+      .footer { align-items: flex-start; font-size: 11px; }
+      .desktop-hint { display: none; }
+      .touch-hint { display: inline; color: var(--mint); font: 700 11px "Courier New", monospace; }
+      .title-art { height: 58px; width: 156px; }
+      .title-art canvas { width: 156px; height: 58px; }
+      .rules { font-size: 11px; }
+    }
+    /* 窗口偏矮时进一步压缩，保证开始按钮始终在视口内 */
+    @media (max-height: 780px) {
+      .title-art { display: none; }
+      .rules div:nth-child(n+4) { display: none; }
+      .hint-space { margin-top: 6px; }
+    }
+    @media (max-height: 640px) {
+      .title-route { display: none; }
+      .rules div:nth-child(n+3) { display: none; }
+      .title-main { font-size: clamp(22px, 5vw, 34px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="cabinet" aria-label="霓虹夜跑 Codex 龙娘环球跑">
+    <header class="masthead">
+      <div><div class="eyebrow">ARCADE / 02</div><h1>霓虹夜跑</h1></div>
+      <div class="mast-note">四座城市，<br>一条飞行路线。</div>
+    </header>
+
+    <section class="cabinet-frame" aria-label="游戏机">
+      <div class="bezel">
+        <div class="statusbar">
+          <div class="brand"><span class="brand-mark" aria-hidden="true"></span>NEON RUNNER</div>
+          <div class="stats" aria-live="polite">
+            <div class="stat city"><span>城市</span><strong id="city">东京</strong></div>
+            <div class="stat"><span>里程</span><strong id="dist">0000</strong></div>
+            <div class="stat"><span>分数</span><strong id="score">00000</strong></div>
+            <div class="stat lives"><span>生命</span><strong id="lives">P1 ♥♥♥</strong></div>
+            <div class="stat best"><span>最佳</span><strong id="best">00000</strong></div>
+          </div>
+        </div>
+
+        <div class="screen">
+          <canvas id="game" width="400" height="225"
+            role="img"
+            aria-label="像素跑酷：Codex 龙娘在东京、洛杉矶、上海、伦敦之间奔跑，躲避冲撞战机与地面敌人，收集星星。"></canvas>
+          <div class="scanline" aria-hidden="true"></div>
+
+          <div class="overlay" id="overlay">
+            <div class="title-card" id="titleCard">
+              <div class="creator-credit">游戏开发：陈宇能</div>
+              <div class="title-kicker">CODEX DRAGON RUN</div>
+              <h2 class="title-main">霓虹夜跑</h2>
+              <p class="title-sub">Codex 龙娘 · 环球夜行</p>
+              <div class="title-art"><canvas id="titleArt" width="210" height="78"></canvas></div>
+              <div class="title-route">
+                <b>东京</b><i>→</i><b>洛杉矶</b><i>→</i><b>上海</b><i>→</i><b>伦敦</b>
+              </div>
+              <div class="rules">
+                <div><span>跳跃</span><span>空格 / ↑ / W —— 空中可再按一次，龙翼二段跳</span></div>
+                <div><span>双人移动</span><span>P1：A 前进 / D 后退 · P2：→ 前进 / ← 后退（每次短步）</span></div>
+                <div><span>躲战机</span><span>飞机俯冲冲撞前会闪烁预警，抓准时机跳起避开</span></div>
+                <div><span>地面敌人</span><span>巡游者可踩扁 · 尖刺甲不能踩 · 跳跃兽会扑过来</span></div>
+                <div><span>计分</span><span>星星 +25 · 踩扁 +80 · 每 2000 里程进入下一座城市</span></div>
+              </div>
+              <div class="mode-row" role="group" aria-label="游戏模式">
+                <button class="mode-button" id="soloMode" type="button" aria-pressed="true">单人冒险</button>
+                <button class="mode-button" id="duoMode" type="button" aria-pressed="false">本地双人</button>
+              </div>
+              <div class="btn-row">
+                <button class="pixel-button" id="start" type="button">开始跑酷　↗</button>
+              </div>
+              <p class="hint-space" id="modeHint">单人：空格 / ↑ 跳跃 · 每位角色有 3 颗爱心</p>
+              <p class="hint-space" style="color:#5a638c;letter-spacing:.05em">双人合作 · 四城长途巡游</p>
+            </div>
+
+            <div class="dialog" id="overCard" hidden>
+              <div class="dialog-label" id="dialogLabel">RUN ENDED</div>
+              <h2 id="dialogTitle">这次差一点！</h2>
+              <p id="dialogCopy"></p>
+              <div class="btn-row">
+                <button class="pixel-button" id="again" type="button">再跑一次　↻</button>
+              </div>
+            </div>
+
+            <div class="dialog exit-card" id="exitCard" role="dialog" aria-modal="true" aria-labelledby="exitTitle" hidden>
+              <div class="dialog-label">PAUSE MENU</div>
+              <h2 id="exitTitle">要回到游戏主页面吗？</h2>
+              <p>确认后将结束本局并返回开始界面；取消则继续当前游戏。</p>
+              <div class="btn-row">
+                <button class="pixel-button" id="exitConfirm" type="button">确认退出</button>
+                <button class="pixel-button ghost" id="exitCancel" type="button">继续游戏</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <div class="desktop-hint">
+          <span class="keycap">SPACE</span> P1 · <span class="keycap">↑</span> P2 / 单人跳跃（空中再按=二段跳） · 双人：A/D、←/→ 短步移动
+          · <span class="keycap">R</span> 重开
+        </div>
+        <div class="touch-hint">点按屏幕跳跃 · 空中再点一次二段跳</div>
+        <div>收集星星 · 躲开冲撞</div>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+  (() => {
+    'use strict';
+
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const groundY = 190;
+    const scoreNode = document.getElementById('score');
+    const bestNode = document.getElementById('best');
+    const distNode = document.getElementById('dist');
+    const cityNode = document.getElementById('city');
+    const overlay = document.getElementById('overlay');
+    const titleCard = document.getElementById('titleCard');
+    const overCard = document.getElementById('overCard');
+    const exitCard = document.getElementById('exitCard');
+    const exitConfirmButton = document.getElementById('exitConfirm');
+    const exitCancelButton = document.getElementById('exitCancel');
+    const dialogLabel = document.getElementById('dialogLabel');
+    const dialogTitle = document.getElementById('dialogTitle');
+    const dialogCopy = document.getElementById('dialogCopy');
+    const startButton = document.getElementById('start');
+    const againButton = document.getElementById('again');
+    const titleArt = document.getElementById('titleArt');
+    const soloModeButton = document.getElementById('soloMode');
+    const duoModeButton = document.getElementById('duoMode');
+    const modeHint = document.getElementById('modeHint');
+    const livesNode = document.getElementById('lives');
+
+    const STORAGE_KEY = 'neon-runner-best-v2';
+    const CITY_SPAN = 8000;     // 内部距离每 8000≈HUD 里程 2000 时进入下一座城市
+
+    /* ------------------------------------------------------------------ *
+     *  城市表：每座城市一套配色 + 天际线参数，远景/近景两层视差各自生成
+     * ------------------------------------------------------------------ */
+    const CITIES = [
+      {
+        name: '东京', en: 'TOKYO', night: true,
+        sky: ['#140f2e', '#2c1c4d', '#5a2a55'],
+        far: '#241a44', near: '#2e2050', win: ['#ff5f9e', '#6ce0ff', '#ffd36a'],
+        neon: '#ff5f9e', accent: '#ffd36a', ground: '#12102a', glow: '#72f1c4',
+        farW: 46, farH: [34, 74], nearW: 60, nearH: [40, 86],
+        landmark: 'tokyo', fog: 0.0
+      },
+      {
+        name: '洛杉矶', en: 'LOS ANGELES', night: true,
+        sky: ['#0d1430', '#26325e', '#7a4a52'],
+        far: '#1c2348', near: '#242c56', win: ['#ffcf7a', '#7fd4ff', '#ff9d6e'],
+        neon: '#ff9d6e', accent: '#7fd4ff', ground: '#111530', glow: '#ffd36a',
+        farW: 38, farH: [22, 56], nearW: 74, nearH: [18, 44],
+        landmark: 'la', fog: 0.02
+      },
+      {
+        name: '上海', en: 'SHANGHAI', night: true,
+        sky: ['#0a1030', '#1f2a5c', '#4a2a5e'],
+        far: '#182046', near: '#202a58', win: ['#7ce8ff', '#ff7ab8', '#ffe9a8'],
+        neon: '#7ce8ff', accent: '#ff7ab8', ground: '#0e1330', glow: '#7ce8ff',
+        farW: 44, farH: [40, 92], nearW: 66, nearH: [46, 96],
+        landmark: 'shanghai', fog: 0.03
+      },
+      {
+        name: '伦敦', en: 'LONDON', night: true,
+        sky: ['#0c1226', '#232a48', '#4d4a63'],
+        far: '#1a2040', near: '#232b4c', win: ['#ffcf8a', '#9fb8ff', '#e8e2c8'],
+        neon: '#e8e2c8', accent: '#ffcf8a', ground: '#101428', glow: '#9fb8ff',
+        farW: 40, farH: [26, 62], nearW: 58, nearH: [32, 70],
+        landmark: 'london', fog: 0.13
+      }
+    ];
+
+    /* ------------------------------------------------------------------ *
+     *  龙娘调色板（取自 Codex 龙娘·居家版：白色长卷发 + 淡紫龙角龙尾 + 白裙）
+     * ------------------------------------------------------------------ */
+    const P = {
+      hairLit: '#ffffff', hair: '#f2eeff', hairMid: '#ded6f7', hairShade: '#b3a2dc',
+      hornLit: '#e4d5ff', horn: '#bda0eb', hornShade: '#8a6cbd',
+      skinLit: '#ffdcc8', skin: '#f0c0a4', skinShade: '#c98f78',
+      eye: '#9375d6', eyeLit: '#ffffff', blush: '#ff9fbf',
+      dressLit: '#ffffff', dress: '#f6f3ff', dressShade: '#c6bde6',
+      trim: '#8ee8c8', trimShade: '#5cb89c', ribbon: '#a98fdc', pocket: '#e6dffb',
+      shoe: '#fbf8ff', shoeShade: '#c8c0e2',
+      outline: '#3b2b55'
+    };
+
+    /* ------------------------------------------------------------------ *
+     *  工具
+     * ------------------------------------------------------------------ */
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const pick = (arr) => arr[(Math.random() * arr.length) | 0];
+    const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+    function px(x, y, w, h, c) {
+      ctx.fillStyle = c;
+      ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    }
+    function pad(n, len) {
+      let s = String(Math.max(0, Math.floor(n)));
+      while (s.length < len) s = '0' + s;
+      return s;
+    }
+
+    // 5x7 点阵字模，只在 canvas 上画英文/数字，中文交给 DOM
+    const GLYPHS = {
+      A: ['01110', '10001', '10001', '11111', '10001', '10001', '10001'],
+      B: ['11110', '10001', '11110', '10001', '10001', '10001', '11110'],
+      C: ['01111', '10000', '10000', '10000', '10000', '10000', '01111'],
+      D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
+      E: ['11111', '10000', '11110', '10000', '10000', '10000', '11111'],
+      F: ['11111', '10000', '11110', '10000', '10000', '10000', '10000'],
+      G: ['01111', '10000', '10000', '10111', '10001', '10001', '01111'],
+      H: ['10001', '10001', '11111', '10001', '10001', '10001', '10001'],
+      I: ['111', '010', '010', '010', '010', '010', '111'],
+      J: ['00111', '00010', '00010', '00010', '00010', '10010', '01100'],
+      K: ['10001', '10010', '11100', '10010', '10001', '10001', '10001'],
+      L: ['10000', '10000', '10000', '10000', '10000', '10000', '11111'],
+      M: ['10001', '11011', '10101', '10001', '10001', '10001', '10001'],
+      N: ['10001', '11001', '10101', '10011', '10001', '10001', '10001'],
+      O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
+      P: ['11110', '10001', '11110', '10000', '10000', '10000', '10000'],
+      R: ['11110', '10001', '11110', '10100', '10010', '10001', '10001'],
+      S: ['01111', '10000', '01110', '00001', '00001', '10001', '01110'],
+      T: ['11111', '00100', '00100', '00100', '00100', '00100', '00100'],
+      U: ['10001', '10001', '10001', '10001', '10001', '10001', '01110'],
+      V: ['10001', '10001', '10001', '10001', '10001', '01010', '00100'],
+      W: ['10001', '10001', '10001', '10101', '10101', '11011', '10001'],
+      X: ['10001', '01010', '00100', '00100', '00100', '01010', '10001'],
+      Y: ['10001', '01010', '00100', '00100', '00100', '00100', '00100'],
+      Z: ['11111', '00010', '00100', '01000', '10000', '10000', '11111'],
+      '0': ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
+      '1': ['00100', '01100', '00100', '00100', '00100', '00100', '01110'],
+      '2': ['01110', '10001', '00001', '00110', '01000', '10000', '11111'],
+      '3': ['11110', '00001', '00001', '01110', '00001', '00001', '11110'],
+      '4': ['00010', '00110', '01010', '10010', '11111', '00010', '00010'],
+      '5': ['11111', '10000', '11110', '00001', '00001', '10001', '01110'],
+      '6': ['00110', '01000', '10000', '11110', '10001', '10001', '01110'],
+      '7': ['11111', '00001', '00010', '00100', '01000', '01000', '01000'],
+      '8': ['01110', '10001', '01110', '10001', '10001', '10001', '01110'],
+      '9': ['01110', '10001', '10001', '01111', '00001', '00010', '01100'],
+      '-': ['000', '000', '000', '111', '000', '000', '000'],
+      '.': ['00', '00', '00', '00', '00', '00', '11'],
+      '!': ['1', '1', '1', '1', '1', '0', '1'],
+      '+': ['000', '010', '010', '111', '010', '010', '000'],
+      ':': ['00', '11', '11', '00', '00', '11', '11'],
+      ' ': ['000', '000', '000', '000', '000', '000', '000']
+    };
+    function text(str, x, y, s, color) {
+      ctx.fillStyle = color;
+      let cx = x;
+      for (const ch of String(str).toUpperCase()) {
+        const g = GLYPHS[ch];
+        if (!g) { cx += 4 * s; continue; }
+        for (let r = 0; r < g.length; r++) {
+          const row = g[r];
+          for (let c = 0; c < row.length; c++) {
+            if (row[c] === '1') ctx.fillRect(cx + c * s, y + r * s, s, s);
+          }
+        }
+        cx += (g[0].length + 1) * s;
+      }
+      return cx;
+    }
+    function textWidth(str, s) {
+      let w = 0;
+      for (const ch of String(str).toUpperCase()) {
+        const g = GLYPHS[ch];
+        w += ((g ? g[0].length : 4) + 1) * s;
+      }
+      return w;
+    }
+    function textCenter(str, cx, y, s, color) {
+      text(str, cx - textWidth(str, s) / 2, y, s, color);
+    }
+
+    /* ------------------------------------------------------------------ *
+     *  游戏状态
+     * ------------------------------------------------------------------ */
+    let best = Number(localStorage.getItem(STORAGE_KEY) || 0);
+    let state = 'title';        // title | running | over | paused
+    let exitReturnState = 'running';
+    let gameMode = 'solo';      // solo | duo
+    let score = 0, starBonus = 0, distance = 0, speed = 2.8;
+    let lastTime = 0, timeNow = 0;
+    let obstacles = [], enemies = [], stars = [], particles = [], jets = [];
+    let shake = 0, hitFlash = 0;
+    let stompCount = 0;
+    let cityIdx = 0, cityTimer = 0, bannerTimer = 0;
+    let spawnIn = 150, jetIn = 460;
+    let runTime = 0;
+    let fatal = '';
+
+    const makePlayer = (id, x) => ({
+      id, x, y: groundY - 24, w: 18, h: 24, vy: 0, grounded: true,
+      run: 0, jumpBuffer: 0, coyote: 0, jumpHeld: false, jumpsLeft: 2,
+      invuln: 0, hearts: 3, alive: true
+    });
+    const players = [makePlayer(1, 48), makePlayer(2, 132)];
+    const roster = () => gameMode === 'duo' ? players : [players[0]];
+    const livingPlayers = () => roster().filter(p => p.alive);
+
+    bestNode.textContent = pad(best, 5);
+
+    // 背景里缓慢飘动的雾/尘
+    let motes = [];
+    function makeMotes() {
+      motes = Array.from({ length: 46 }, () => ({
+        x: rnd(0, W), y: rnd(10, groundY - 20), s: Math.random() < .22 ? 2 : 1,
+        ph: rnd(0, 8), d: rnd(.12, .5)
+      }));
+    }
+    makeMotes();
+
+    const city = () => CITIES[cityIdx];
+
+    function resetWorld() {
+      obstacles = []; enemies = []; stars = []; particles = [];
+      jets = [];
+      shake = 0; hitFlash = 0; cityIdx = 0; cityTimer = 0; bannerTimer = 0;
+      stompCount = 0;
+      spawnIn = 190; jetIn = 560;
+      players.forEach((p, i) => {
+        p.x = i === 0 ? 48 : 132; p.y = groundY - p.h; p.vy = 0;
+        p.grounded = true; p.run = i * .5; p.jumpBuffer = 0; p.coyote = 0;
+        p.jumpHeld = false; p.jumpsLeft = 2; p.invuln = 0; p.hearts = 3; p.alive = true;
+      });
+      cityNode.textContent = city().name;
+      updateLives();
+      makeMotes();
+    }
+
+    function startGame() {
+      state = 'running';
+      score = 0; starBonus = 0; distance = 0; speed = 2.8; runTime = 0;
+      resetWorld();
+      overlay.hidden = true;
+      exitCard.hidden = true;
+      lastTime = 0;
+      for (const p of livingPlayers()) burst(p.x + 8, p.y + 20, 10, P.trim);
+    }
+
+    function showExitPrompt() {
+      if (state !== 'running' && state !== 'over') return;
+      exitReturnState = state;
+      state = 'paused';
+      titleCard.hidden = true;
+      overCard.hidden = true;
+      exitCard.hidden = false;
+      overlay.hidden = false;
+      exitCancelButton.focus();
+    }
+
+    function cancelExitPrompt() {
+      if (state !== 'paused') return;
+      state = exitReturnState;
+      exitCard.hidden = true;
+      titleCard.hidden = true;
+      overCard.hidden = state !== 'over';
+      overlay.hidden = state === 'running';
+    }
+
+    function returnToTitle() {
+      state = 'title';
+      score = 0; starBonus = 0; distance = 0; speed = 2.8; runTime = 0;
+      resetWorld();
+      scoreNode.textContent = pad(score, 5);
+      distNode.textContent = pad(distance / 4, 4);
+      titleCard.hidden = false;
+      overCard.hidden = true;
+      exitCard.hidden = true;
+      overlay.hidden = false;
+      lastTime = 0;
+    }
+
+    function endGame() {
+      state = 'over';
+      shake = 7;
+      const last = roster().find(p => p.alive) || players[0];
+      burst(last.x + 8, last.y + 12, 18, '#ff72a9');
+      if (score > best) {
+        best = score;
+        try { localStorage.setItem(STORAGE_KEY, best); } catch (e) {}
+        bestNode.textContent = pad(best, 5);
+      }
+      titleCard.hidden = true;
+      overCard.hidden = false;
+      exitCard.hidden = true;
+      dialogLabel.textContent = 'RUN ENDED';
+      dialogTitle.textContent = '这次差一点！';
+      dialogCopy.textContent =
+        `本次得分 ${pad(score, 5)}　·　最佳纪录 ${pad(best, 5)}　·　` +
+        `抵达 ${city().name}（里程 ${Math.floor(distance)}）` +
+        (gameMode === 'duo' ? `　·　P1 ${players[0].hearts}♥ / P2 ${players[1].hearts}♥` : `　·　剩余 ${players[0].hearts}♥`);
+      overlay.hidden = false;
+      updateLives();
+    }
+
+    function updateLives() {
+      const hearts = p => '♥'.repeat(p.hearts) + '♡'.repeat(3 - p.hearts);
+      livesNode.textContent = gameMode === 'duo'
+        ? `P1 ${hearts(players[0])} P2 ${hearts(players[1])}`
+        : `P1 ${hearts(players[0])}`;
+    }
+
+    function setMode(mode) {
+      if (state === 'running') return;
+      gameMode = mode;
+      soloModeButton.setAttribute('aria-pressed', String(mode === 'solo'));
+      duoModeButton.setAttribute('aria-pressed', String(mode === 'duo'));
+      modeHint.textContent = mode === 'duo'
+        ? '双人合作：P1 空格跳 / A 前进 / D 后退 · P2 ↑ 跳 / → 前进 / ← 后退（短步移动）'
+        : '单人：空格 / ↑ 跳跃 · 3 颗爱心 · 空中可二段跳';
+      updateLives();
+    }
+
+    function burst(x, y, n, color) {
+      for (let i = 0; i < n; i++) {
+        particles.push({
+          x, y, vx: rnd(-2.2, 2.2), vy: rnd(-2.6, .3),
+          life: rnd(12, 28), max: 28, color: color, s: Math.random() < .3 ? 2 : 1
+        });
+      }
+    }
+
+    /* ================================================================== *
+     *  龙娘绘制
+     *  碰撞盒 18x24 位于 (x, y..y+24)；精灵整体约 x-14..x+26, y-14..y+26
+     *  垂直分区：角 y-10 / 头顶发 y-6 / 脸 y-4..y+6 / 连衣裙 y+6..y+21 / 腿鞋 y+21..y+24
+     * ================================================================== */
+    function drawDragon(x, y, pose, runner) {
+      const moving = pose === 'run';
+      const air = pose === 'jump';
+      const stride = moving ? (Math.floor(runner.run) % 2) : 0;
+      const bob = moving ? 0 : Math.round(Math.sin(timeNow / 420));
+      const oy = y + bob;
+      const flap = Math.sin(timeNow / 95) > 0 ? 1 : 0;
+
+      /* ---- 龙尾：自腰后向左上扬起，末端菱形鳍 ---- */
+      const ty = oy + 16 - (air ? 3 : 0);
+      px(x - 5, ty + 4, 5, 4, P.hornShade);
+      px(x - 8, ty + 1, 5, 4, P.horn);
+      px(x - 10, ty - 3, 5, 4, P.horn);
+      px(x - 11, ty - 7, 5, 5, P.horn);
+      px(x - 10, ty - 11, 4, 4, P.hornLit);
+      px(x - 14, ty - 10, 5, 4, P.hornLit);
+      px(x - 9, ty - 14, 4, 4, P.hornLit);
+      px(x - 12, ty - 6, 3, 3, P.hornLit);
+
+      /* ---- 后发：白色长卷发，自头后垂到腰下 ---- */
+      px(x + 1, oy - 3, 14, 21, P.hairMid);
+      px(x + 2, oy + 16, 12, 5, P.hairShade);
+      px(x + 3, oy + 20, 10, 4, P.hairShade);
+      px(x + 5, oy + 23, 6, 3, P.hairShade);
+      px(x + 3, oy - 2, 10, 15, P.hair);
+
+      /* ---- 腿与鞋 ---- */
+      if (air) {
+        px(x + 4, oy + 18, 4, 4, P.skin);
+        px(x + 10, oy + 16, 4, 5, P.skin);
+        px(x + 3, oy + 22, 6, 2, P.shoe);
+        px(x + 10, oy + 21, 6, 3, P.shoe);
+      } else if (stride) {
+        px(x + 4, oy + 18, 4, 5, P.skin);
+        px(x + 10, oy + 18, 4, 3, P.skin);
+        px(x + 3, oy + 22, 6, 2, P.shoe);
+        px(x + 10, oy + 21, 6, 3, P.shoe);
+      } else {
+        px(x + 5, oy + 18, 4, 5, P.skin);
+        px(x + 9, oy + 18, 4, 5, P.skin);
+        px(x + 4, oy + 22, 6, 2, P.shoe);
+        px(x + 9, oy + 22, 6, 2, P.shoe);
+        px(x + 5, oy + 22, 3, 1, P.shoeShade);
+      }
+
+      /* ---- 连衣裙：泡泡袖 + 荷叶边裙摆 ---- */
+      px(x + 3, oy + 12, 12, 7, P.dress);
+      px(x + 3, oy + 12, 12, 2, P.dressLit);
+      px(x + 2, oy + 18, 14, 4, P.dress);
+      px(x + 2, oy + 21, 14, 1, P.dressShade);
+      px(x + 2, oy + 21, 3, 1, P.dressLit);
+      px(x + 6, oy + 21, 3, 1, P.dressLit);
+      px(x + 10, oy + 21, 3, 1, P.dressLit);
+      px(x + 13, oy + 21, 3, 1, P.dressLit);
+      px(x + 3, oy + 15, 12, 2, P.trim);
+      px(x + 3, oy + 15, 12, 1, P.trimShade);
+      px(x + 8, oy + 14, 3, 3, P.ribbon);
+      px(x + 11, oy + 17, 3, 2, P.pocket);
+      px(x + 7, oy + 17, 2, 3, P.dressShade);
+      px(x + 4, oy + 19, 1, 2, P.dressShade);
+      px(x + 12, oy + 19, 1, 2, P.dressShade);
+      // 泡泡袖
+      px(x + 1, oy + 11, 3, 5, P.dressLit);
+      px(x + 14, oy + 11, 3, 5, P.dressLit);
+      px(x + 1, oy + 15, 3, 2, P.trim);
+      px(x + 14, oy + 15, 3, 2, P.trim);
+      px(x + 1, oy + 16, 3, 1, P.trimShade);
+      px(x + 14, oy + 16, 3, 1, P.trimShade);
+
+      /* ---- 手臂 ---- */
+      const armY = air ? oy + 10 : moving ? oy + 13 : oy + 13;
+      px(x + 15, armY, 3, 4, P.skin);
+      px(x, armY + (moving ? 1 : 0), 3, 4, P.skin);
+
+      /* ---- 脸（先铺一圈发色描边，避免脸与头发糊成一片）---- */
+      px(x, oy - 5, 17, 14, P.hairShade);
+      px(x + 3, oy - 4, 11, 11, P.skin);
+      px(x + 3, oy - 4, 11, 2, P.skinLit);
+      px(x + 4, oy + 5, 9, 2, P.skinShade);
+      px(x + 4, oy + 1, 1, 1, P.skinLit);
+      px(x + 13, oy + 1, 1, 1, P.skinShade);
+
+      /* ---- 前发：齐刘海 + 两侧鬓发 ---- */
+      px(x + 1, oy - 6, 15, 4, P.hair);
+      px(x + 1, oy - 6, 15, 2, P.hairLit);
+      px(x + 2, oy - 2, 3, 2, P.hair);
+      px(x + 6, oy - 3, 2, 2, P.hairMid);
+      px(x + 12, oy - 2, 4, 2, P.hair);
+      px(x, oy - 4, 3, 11, P.hair);
+      px(x + 14, oy - 3, 3, 12, P.hairMid);
+      px(x + 1, oy + 6, 2, 5, P.hairShade);
+      px(x + 15, oy + 8, 2, 4, P.hairShade);
+      px(x + 2, oy + 4, 1, 4, P.hairMid);
+      px(x + 15, oy + 3, 1, 4, P.hairLit);
+      // 呆毛
+      px(x + 8, oy - 9, 3, 3, P.hair);
+      px(x + 10, oy - 11, 3, 3, P.hairLit);
+      px(x + 9, oy - 12, 2, 2, P.hairLit);
+
+      /* ---- 淡紫龙角：粗大、向后上方弯 ---- */
+      px(x + 3, oy - 9, 4, 4, P.horn);
+      px(x + 2, oy - 12, 4, 4, P.horn);
+      px(x + 1, oy - 14, 4, 3, P.hornLit);
+      px(x + 12, oy - 8, 4, 4, P.horn);
+      px(x + 13, oy - 11, 3, 4, P.hornLit);
+      px(x + 14, oy - 13, 3, 3, P.hornLit);
+      px(x + 4, oy - 10, 2, 1, '#f7edff');
+      px(x + 14, oy - 11, 2, 1, '#f7edff');
+
+      /* ---- 龙翼：跳跃时展开扇动 ---- */
+      if (air) {
+        const w = 9 - flap;
+        px(x - 5, oy + 3 - flap, w, 4, P.hornLit);
+        px(x - 9, oy + 6 - flap, w, 4, P.horn);
+        px(x - 12, oy + 10 - flap, w - 2, 3, P.horn);
+        px(x + 18, oy + 3 - flap, w, 4, P.hornLit);
+        px(x + 21, oy + 6 - flap, w, 4, P.horn);
+        px(x + 24, oy + 10 - flap, w - 2, 3, P.horn);
+      }
+
+      /* ---- 脸 ---- */
+      const blink = (timeNow % 3400) < 100;
+      if (blink) {
+        px(x + 5, oy, 3, 1, P.outline);
+        px(x + 10, oy, 3, 1, P.outline);
+      } else {
+        px(x + 5, oy - 2, 3, 4, P.eyeLit);
+        px(x + 6, oy - 1, 2, 3, P.eye);
+        px(x + 6, oy, 1, 1, '#4f3977');
+        px(x + 5, oy - 2, 1, 1, P.eyeLit);
+        px(x + 10, oy - 2, 3, 4, P.eyeLit);
+        px(x + 11, oy - 1, 2, 3, P.eye);
+        px(x + 11, oy, 1, 1, '#4f3977');
+        px(x + 10, oy - 2, 1, 1, P.eyeLit);
+        px(x + 5, oy - 3, 3, 1, P.outline);
+        px(x + 10, oy - 3, 3, 1, P.outline);
+      }
+      px(x + 4, oy - 1, 1, 2, P.hairShade);
+      px(x + 14, oy - 1, 1, 2, P.hairShade);
+      px(x + 4, oy + 3, 2, 1, P.blush);
+      px(x + 12, oy + 3, 2, 1, P.blush);
+      px(x + 8, oy + 3, 2, 1, P.skinShade);
+      px(x + 15, oy + 7, 2, 2, runner.id === 2 ? '#ff9dbd' : P.trim);
+      px(x + 16, oy + 7, 1, 1, '#fff4ff');
+    }
+
+    /* P2 像素猫：圆耳、白口鼻、条纹尾巴与小爪；碰撞盒仍为 18x24。 */
+    function drawCat(x, y, pose, runner) {
+      const moving = pose === 'run';
+      const air = pose === 'jump';
+      const step = moving ? Math.floor(runner.run) % 2 : 0;
+      const bob = moving ? 0 : Math.round(Math.sin(timeNow / 420));
+      const oy = y + bob;
+      const tailLift = air ? -4 : step ? -1 : 1;
+
+      // 卷起的条纹尾巴
+      px(x - 6, oy + 15 + tailLift, 4, 4, '#59617c');
+      px(x - 9, oy + 11 + tailLift, 4, 5, '#737b99');
+      px(x - 8, oy + 10 + tailLift, 2, 3, '#d9def0');
+      px(x - 11, oy + 7 + tailLift, 4, 5, '#59617c');
+      px(x - 12, oy + 5 + tailLift, 4, 3, '#737b99');
+
+      // 身体和四只小爪
+      px(x + 2, oy + 12, 14, 9, '#8c94b0');
+      px(x + 4, oy + 13, 10, 6, '#c6cbe0');
+      px(x + 3, oy + 19, 4, 4, '#707891');
+      px(x + 11, oy + 19, 4, 4, '#707891');
+      px(x + 2 + step, oy + 21, 5, 3, '#d9def0');
+      px(x + 11 - step, oy + 21, 5, 3, '#d9def0');
+
+      // 头、尖耳与耳心
+      px(x + 1, oy + 1, 16, 14, '#737b99');
+      px(x + 2, oy - 3, 5, 7, '#737b99');
+      px(x + 11, oy - 3, 5, 7, '#737b99');
+      px(x + 3, oy, 3, 4, '#f39aaa');
+      px(x + 12, oy, 3, 4, '#f39aaa');
+      px(x + 3, oy + 3, 12, 9, '#d9def0');
+      px(x + 5, oy + 6, 3, 4, '#fff4df');
+      px(x + 10, oy + 6, 3, 4, '#fff4df');
+
+      // 额头花纹、眼睛、鼻子和胡须
+      px(x + 5, oy + 2, 2, 3, '#59617c');
+      px(x + 8, oy + 1, 2, 3, '#59617c');
+      px(x + 11, oy + 2, 2, 3, '#59617c');
+      if ((timeNow % 3200) < 100) {
+        px(x + 5, oy + 6, 3, 1, '#34394e');
+        px(x + 10, oy + 6, 3, 1, '#34394e');
+      } else {
+        px(x + 6, oy + 6, 2, 3, '#34394e');
+        px(x + 11, oy + 6, 2, 3, '#34394e');
+        px(x + 6, oy + 6, 1, 1, '#ffffff');
+        px(x + 11, oy + 6, 1, 1, '#ffffff');
+      }
+      px(x + 8, oy + 9, 3, 2, '#e987a0');
+      px(x + 5, oy + 10, 3, 1, '#9b7186');
+      px(x + 11, oy + 10, 3, 1, '#9b7186');
+      px(x, oy + 9, 5, 1, '#fff1e5');
+      px(x + 14, oy + 9, 5, 1, '#fff1e5');
+      px(x - 1, oy + 11, 5, 1, '#fff1e5');
+      px(x + 14, oy + 11, 5, 1, '#fff1e5');
+      if (air) {
+        px(x + 3, oy + 16, 3, 2, '#fff4df');
+        px(x + 12, oy + 16, 3, 2, '#fff4df');
+      }
+    }
+
+    /* ================================================================== *
+     *  地面敌人（4 种）
+     * ================================================================== */
+    function spawnGroundEnemy() {
+      const roll = Math.random();
+      if (roll < .40) {
+        // 巡游者：可踩扁
+        enemies.push({
+          kind: 'walker', x: W + 10, y: groundY - 15, w: 16, h: 15,
+          vx: -0.25, phase: rnd(0, 7), stomped: 0, hp: 1
+        });
+      } else if (roll < .70) {
+        // 尖刺甲：踩上去会受伤，只能跳过去
+        enemies.push({
+          kind: 'spiker', x: W + 10, y: groundY - 14, w: 15, h: 14,
+          vx: -0.18, phase: rnd(0, 7), stomped: 0, hp: 1
+        });
+      } else {
+        // 跳跃兽：周期性扑向玩家，要有提前量
+        enemies.push({
+          kind: 'hopper', x: W + 10, y: groundY - 16, w: 15, h: 16,
+          vx: -0.6, vy: 0, phase: rnd(0, 20), jumpIn: rnd(30, 70), stomped: 0, hp: 1
+        });
+      }
+    }
+
+    function spawnObstacle() {
+      // 静态障碍：路障 / 箱 / 高柱
+      const roll = Math.random();
+      const type = roll < .42 ? 'spike' : roll < .72 ? 'crate' : 'tall';
+      const o = { x: W + 10, type, passed: false };
+      o.w = type === 'tall' ? 14 : 13;
+      o.h = type === 'spike' ? 12 : type === 'tall' ? 23 : 16;
+      o.y = groundY - o.h;
+      obstacles.push(o);
+
+      if (Math.random() < .5) {
+        const count = Math.random() < .35 ? 3 : 2;
+        for (let i = 0; i < count; i++) {
+          stars.push({
+            x: o.x + 6 + i * 14,
+            y: groundY - rnd(30, 42) - (count === 3 && i === 1 ? 9 : 0),
+            taken: false, spin: rnd(0, 6)
+          });
+        }
+      }
+      if (Math.random() < .3) spawnGroundEnemy();
+      spawnIn = rnd(52, 70) * speed;
+    }
+
+    function spawnJet() {
+      const lanes = [rnd(22, 43), rnd(53, 79), rnd(89, 112)];
+      const lane = pick(lanes);
+      jets.push({
+        x: W + 26, y: lane, baseY: lane, w: 31, h: 13,
+        vx: -1.25, state: 'cruise', tellT: 0, dashT: 0, targetY: lane,
+        targetPlayer: 0, phase: rnd(0, 6), wing: 0
+      });
+      jetIn = rnd(470, 650) * Math.max(1, speed / 2.8);
+    }
+
+    function spawnStars(n, x, y) {
+      for (let i = 0; i < n; i++) {
+        stars.push({ x: x + i * 13, y: y, taken: false, spin: rnd(0, 6) });
+      }
+    }
+
+    /* ================================================================== *
+     *  更新
+     * ================================================================== */
+    function tryJump(p) {
+      const grounded = p.grounded || p.coyote > 0;
+      const canAir = !grounded && p.jumpsLeft > 0 && !p.grounded;
+      if (p.jumpBuffer <= 0 || !p.alive) return;
+      if (grounded) {
+        p.vy = -7.1; p.grounded = false; p.coyote = 0; p.jumpsLeft = 1;
+        p.jumpBuffer = 0;
+        burst(p.x + 8, groundY - 2, 6, P.trim);
+      } else if (canAir || p.jumpsLeft > 0) {
+        // 龙翼二段跳
+        p.vy = -5.8; p.jumpsLeft--; p.jumpBuffer = 0;
+        burst(p.x + 8, p.y + 22, 8, P.hornLit);
+      }
+    }
+
+    function autoJump(p) {
+      if (!p.jumpHeld || !p.grounded || !p.alive) return;
+      const next = obstacles.concat(enemies)
+        .filter(o => o.x + o.w > p.x)
+        .sort((a, b) => a.x - b.x)[0];
+      if (!next) return;
+      const reach = 16 + speed * 20;
+      if (next.x - p.x < reach) p.jumpBuffer = 12;
+    }
+
+    function update(dt) {
+      const f = clamp(dt / 16.67, 0, 2.4);
+      timeNow += dt;
+
+      if (hazardActive()) {
+        for (const p of particles) p.life -= f * 1.4;
+        particles = particles.filter(p => p.life > 0);
+      }
+
+      if (bannerTimer > 0) bannerTimer -= dt;
+      if (hitFlash > 0) hitFlash -= dt;
+      if (cityTimer > 0) cityTimer -= dt;
+
+      if (state === 'running') {
+        const runners = livingPlayers();
+        const previousFeet = new Map();
+        runTime += dt;
+        distance += speed * f;
+        // 分数：里程 + 星星奖励，负值一律夹到 0
+        score = Math.max(0, Math.floor(distance / 4) + starBonus);
+
+        // 城市轮换
+        const want = Math.floor(distance / CITY_SPAN) % CITIES.length;
+        if (want !== cityIdx) {
+          cityIdx = want;
+          bannerTimer = 2600;
+          cityTimer = 2600;
+          cityNode.textContent = city().name;
+          burst(W * .5, 60, 14, city().neon);
+        }
+        speed = Math.min(6.6, speed + .0024 * f);
+        for (const p of runners) {
+          p.run += .24 * f;
+          p.invuln = Math.max(0, p.invuln - dt);
+          p.jumpBuffer = Math.max(0, p.jumpBuffer - f);
+          p.coyote = p.grounded ? 9 : Math.max(0, p.coyote - f);
+          autoJump(p);
+          tryJump(p);
+          previousFeet.set(p.id, p.y + p.h);
+          p.vy += .42 * f;
+          p.y += p.vy * f;
+          if (p.y + p.h >= groundY) {
+            p.y = groundY - p.h; p.vy = 0; p.grounded = true;
+            p.jumpsLeft = 2;
+          } else {
+            p.grounded = false;
+          }
+          if (p.y < 4) { p.y = 4; p.vy = Math.max(0, p.vy); }
+        }
+
+        // ---- 生成
+        spawnIn -= speed * f;
+        if (spawnIn <= 0) spawnObstacle();
+        jetIn -= speed * f;
+        if (jetIn <= 0) spawnJet();
+
+        // ---- 推进世界
+        for (const o of obstacles) o.x -= speed * f;
+        for (const s of stars) { s.x -= speed * f; s.spin += .12 * f; }
+        for (const e of enemies) {
+          e.x -= speed * f + (e.vx || 0) * f * 0.6;
+          e.phase += .22 * f;
+          if (e.stomped) e.stomped -= f;
+          if (e.kind === 'hopper') {
+            e.jumpIn -= f;
+            if (e.jumpIn <= 0 && e.y >= groundY - e.h - .5) {
+              e.vy = -5.4; e.jumpIn = rnd(46, 92);
+            }
+            e.vy += .34 * f; e.y += e.vy * f;
+            if (e.y > groundY - e.h) { e.y = groundY - e.h; e.vy = 0; }
+          }
+        }
+        obstacles = obstacles.filter(o => o.x + o.w > -8);
+        stars = stars.filter(s => s.x > -10 && !s.taken);
+        enemies = enemies.filter(e => e.x + e.w > -10 && e.stomped <= 0);
+
+        // ---- 战机：分层巡航，预警后俯冲冲撞一位玩家
+        for (const j of jets) {
+          j.wing += .3 * f;
+          if (j.state === 'cruise') {
+            j.x -= (speed * .55 + .7) * f;
+            j.y = j.baseY + Math.sin(timeNow / 260 + j.phase) * 4;
+            if (j.x < W - 48 && j.x > 150 && runners.length) {
+              const target = pick(runners);
+              j.state = 'tell'; j.tellT = 27;
+              j.targetPlayer = target.id;
+              j.targetY = clamp(target.y + target.h / 2 - j.h / 2, 34, groundY - j.h - 1);
+            }
+          } else if (j.state === 'tell') {
+            j.x -= (speed * .35 + .5) * f;
+            j.y += (j.targetY - j.y) * Math.min(1, .12 * f);
+            j.tellT -= f;
+            if (j.tellT <= 0) {
+              j.state = 'dash'; j.dashT = 34;
+              shake = Math.max(shake, 2);
+            }
+          } else if (j.state === 'dash') {
+            j.x -= (9.2 + speed * .3) * f;
+            j.y += (j.targetY - j.y) * Math.min(1, .3 * f);
+            j.dashT -= f;
+            if (j.dashT <= 0) j.state = 'exit';
+          } else {
+            j.x -= (speed + 1.2) * f;
+          }
+        }
+        jets = jets.filter(j => j.x + j.w > -24);
+
+        // ---- 碰撞
+        for (const p of runners) {
+          const hx = p.x + 2, hy = p.y + 4, hw = p.w - 4, hh = p.h - 8;
+          if (p.invuln <= 0) {
+            for (const j of jets) {
+              if (j.state !== 'dash' || p.id !== j.targetPlayer) continue;
+              if (hx < j.x + j.w - 4 && hx + hw > j.x + 4 && hy < j.y + j.h - 2 && hy + hh > j.y + 2) {
+                hurt(p); break;
+              }
+            }
+          }
+          if (state !== 'running') break;
+
+          // 静态障碍
+          for (const o of obstacles) {
+            const ox = o.x + (o.type === 'spike' ? 2 : 1);
+            const oy = o.y + (o.type === 'spike' ? 4 : 1);
+            if (hx < ox + o.w - 2 && hx + hw > ox && hy < oy + o.h - 2 && hy + hh > oy) {
+              hurt(p); break;
+            }
+          }
+          if (state !== 'running') break;
+
+          // 地面敌人：踩踏判定分别结算，队友可接力踩怪
+          for (const e of enemies) {
+            if (e.stomped) continue;
+            const overlapX = hx < e.x + e.w - 3 && hx + hw > e.x + 3;
+            if (!overlapX) continue;
+            const feetNow = p.y + p.h;
+            const fromAbove = p.vy > 0 && previousFeet.get(p.id) <= e.y + 5 && feetNow >= e.y;
+            if (e.kind === 'spiker') {
+              // 尖刺甲不可踩，从上方接触照样受伤
+              if (hy + hh > e.y + 2) hurt(p);
+              if (state !== 'running') break;
+              continue;
+            }
+            if (fromAbove) {
+              e.stomped = 10; stompCount++;
+              p.y = e.y - p.h + 2;
+              p.vy = -4.6; p.grounded = false; p.jumpsLeft = Math.max(p.jumpsLeft, 1);
+              starBonus += 80;
+              burst(e.x + 8, e.y + 4, 7, e.kind === 'hopper' ? P.ribbon : P.trim);
+            } else if (hy < e.y + e.h - 2 && hy + hh > e.y + 2) {
+              hurt(p);
+            }
+            if (state !== 'running') break;
+          }
+          if (state !== 'running') break;
+
+          // 星星由任一玩家拾取，共享奖励
+          for (const s of stars) {
+            if (!s.taken && Math.abs((p.x + 8) - s.x) < 11 && Math.abs((p.y + 12) - s.y) < 15) {
+              s.taken = true; starBonus += 25;
+              burst(s.x, s.y, 5, P.skinLit);
+            }
+          }
+        }
+        updateLives();
+      }
+
+      // 粒子
+      for (const p of particles) {
+        p.x += p.vx * f; p.y += p.vy * f; p.vy += .09 * f;
+        if (hazardActive()) p.x -= speed * f * .3;
+        p.life -= f;
+      }
+      particles = particles.filter(p => p.life > 0);
+      shake = Math.max(0, shake - .42 * f);
+
+      distNode.textContent = pad(distance / 4, 4);
+      scoreNode.textContent = pad(score, 5);
+      distNode.dataset.state = state;
+    }
+
+    function hazardActive() { return state === 'running'; }
+
+    function hurt(p) {
+      if (!p || p.invuln > 0 || !p.alive) return;
+      p.hearts = Math.max(0, p.hearts - 1);
+      p.invuln = 1150;
+      p.alive = p.hearts > 0;
+      hitFlash = 110;
+      shake = Math.max(shake, 4);
+      burst(p.x + 8, p.y + 12, 10, '#ff72a9');
+      updateLives();
+      if (roster().every(runner => !runner.alive)) endGame();
+    }
+
+    /* ================================================================== *
+     *  场景绘制
+     * ================================================================== */
+    function mulberry(seed) {
+      let t = seed >>> 0;
+      return function () {
+        t += 0x6D2B79F5;
+        let r = t;
+        r = Math.imul(r ^ (r >>> 15), r | 1);
+        r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function drawSky() {
+      const c = city();
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, c.sky[0]);
+      g.addColorStop(.62, c.sky[1]);
+      g.addColorStop(1, c.sky[2]);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+
+      // 星星 / 浮尘
+      for (const m of motes) {
+        if (m.y > groundY - 30) continue;
+        const tw = .45 + .55 * Math.sin(timeNow / 340 + m.ph);
+        ctx.globalAlpha = tw * (1 - c.fog * 0.6);
+        const mx = (m.x - distance * m.d * .1) % W;
+        px(mx < 0 ? mx + W : mx, m.y, m.s, m.s, '#e6ecff');
+      }
+      ctx.globalAlpha = 1;
+
+      // 天体：东京/上海用霓虹月，洛杉矶用落日，伦敦用雾中月
+      if (c.landmark === 'la') {
+        ctx.globalAlpha = .85;
+        px(300, 30, 26, 26, '#ffb26b');
+        px(296, 34, 34, 18, '#ffb26b');
+        px(303, 27, 20, 32, '#ffb26b');
+        px(300, 34, 26, 12, '#ffd7a0');
+        ctx.globalAlpha = .28;
+        px(288, 22, 50, 42, '#ff9d6e');
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.globalAlpha = c.fog > .1 ? .55 : .95;
+        px(312, 26, 19, 19, '#f6e7b4');
+        px(309, 29, 25, 13, '#f6e7b4');
+        px(316, 23, 11, 25, '#f6e7b4');
+        px(321, 27, 8, 5, '#dccc95');
+        px(324, 35, 6, 6, '#dccc95');
+        ctx.globalAlpha = 1;
+      }
+      // 远处云层与薄雾，移动速度低于建筑，增加空间层次
+      const cloudShift = (distance * .035) % 470;
+      for (let i = 0; i < 3; i++) {
+        const cx = ((i * 173 - cloudShift) % (W + 52) + W + 52) % (W + 52) - 26;
+        const cy = 54 + i * 19;
+        ctx.globalAlpha = c.landmark === 'la' ? .15 : .1;
+        px(cx, cy, 22, 2, c.accent);
+        px(cx + 5, cy - 2, 12, 2, c.accent);
+        px(cx + 28, cy + 1, 9, 1, c.neon);
+      }
+      ctx.globalAlpha = 1;
+      if (c.fog > 0) {
+        ctx.globalAlpha = c.fog * .28;
+        px(0, 132, W, 18, '#dce4ff');
+        px(0, 156, W, 8, '#e5e8f5');
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // 标志性轮廓
+    function drawLandmark(kind, x, baseY, scale) {
+      const c = city();
+      const dark = c.near;
+      if (kind === 'shanghai') {
+        // 陆家嘴天际线与东方明珠三球塔
+        px(x - 20, baseY - 48 * scale, 14, 48 * scale, dark);
+        px(x - 18, baseY - 62 * scale, 10, 14 * scale, c.near);
+        px(x + 23, baseY - 70 * scale, 12, 70 * scale, dark);
+        px(x + 25, baseY - 84 * scale, 8, 14 * scale, c.near);
+        px(x + 43, baseY - 42 * scale, 14, 42 * scale, dark);
+        px(x + 5, baseY - 80 * scale, 3, 80 * scale, '#39476d');
+        px(x + 1, baseY - 69 * scale, 12, 10 * scale, c.near);
+        px(x + 2, baseY - 67 * scale, 5, 5, c.neon);
+        px(x - 1, baseY - 34 * scale, 18, 15 * scale, c.near);
+        px(x + 1, baseY - 31 * scale, 7, 7, c.neon);
+        px(x + 7, baseY - 91 * scale, 2, 14 * scale, c.accent);
+        px(x + 7, baseY - 88 * scale, 6, 2, c.accent);
+        px(x - 14, baseY - 35 * scale, 3, 2, '#b8f4ff');
+        px(x + 26, baseY - 61 * scale, 2, 2, '#b8f4ff');
+      } else if (kind === 'london') {
+        // 威斯敏斯特宫与大本钟
+        px(x - 20, baseY - 38 * scale, 56, 38 * scale, dark);
+        px(x - 23, baseY - 43 * scale, 62, 5 * scale, '#333d60');
+        for (let k = 0; k < 7; k++) px(x - 16 + k * 8, baseY - 33 * scale, 3, 6 * scale, '#d9c99c');
+        px(x + 17, baseY - 58 * scale, 15, 58 * scale, '#293453');
+        px(x + 15, baseY - 63 * scale, 19, 6 * scale, '#394464');
+        px(x + 20, baseY - 74 * scale, 9, 12 * scale, '#394464');
+        px(x + 21, baseY - 82 * scale, 7, 8 * scale, c.accent);
+        px(x + 19, baseY - 57 * scale, 11, 12 * scale, '#f0d99f');
+        px(x + 24, baseY - 55 * scale, 1, 7 * scale, '#594b3c');
+        px(x + 22, baseY - 51 * scale, 5, 1, '#594b3c');
+      } else if (kind === 'tokyo') {
+        // 东京塔：红白塔身、观景台与天线
+        px(x + 6, baseY - 95 * scale, 3, 15 * scale, '#e8b8a2');
+        px(x + 7, baseY - 80 * scale, 2, 16 * scale, '#e8b8a2');
+        px(x + 3, baseY - 65 * scale, 10, 4 * scale, '#ff826f');
+        px(x + 4, baseY - 61 * scale, 8, 18 * scale, '#d95f63');
+        px(x + 1, baseY - 45 * scale, 14, 4 * scale, '#ff9b76');
+        px(x + 2, baseY - 41 * scale, 12, 19 * scale, '#d95f63');
+        px(x - 1, baseY - 24 * scale, 18, 4 * scale, '#ff9b76');
+        px(x + 2, baseY - 20 * scale, 12, 20 * scale, '#d95f63');
+        px(x + 5, baseY - 90 * scale, 1, 70 * scale, '#ffd0a4');
+        px(x + 8, baseY - 91 * scale, 1, 69 * scale, '#ffd0a4');
+      } else {
+        // 洛杉矶海岸：棕榈、码头和沿岸灯火
+        px(x + 6, baseY - 42 * scale, 3, 42 * scale, '#3d3557');
+        for (let i = 0; i < 5; i++) {
+          const a = (i - 2) * .5;
+          px(x + 7 + a * 12, baseY - 45 * scale + Math.abs(a) * 5, 12, 2, c.near);
+          px(x + 7 - a * 12, baseY - 45 * scale + Math.abs(a) * 5, 12, 2, c.near);
+        }
+        px(x + 4, baseY - 47 * scale, 7, 4, c.near);
+        px(x + 31, baseY - 19 * scale, 24, 2, '#57405b');
+        px(x + 42, baseY - 25 * scale, 2, 6, '#57405b');
+        px(x + 33, baseY - 18 * scale, 2, 2, c.accent);
+        px(x + 51, baseY - 18 * scale, 2, 2, c.neon);
+        px(x - 12, baseY - 12 * scale, 14, 2, '#4a385b');
+      }
+    }
+
+    function drawSkyline() {
+      const c = city();
+      const routeStage = Math.floor(distance / CITY_SPAN);
+      const r1 = mulberry(1000 + cityIdx * 77 + routeStage * 419);
+      const farShift = (distance * .10) % 90;
+      for (let i = -1; i < 7; i++) {
+        const x = i * 90 - farShift;
+        const h = c.farH[0] + r1() * (c.farH[1] - c.farH[0]);
+        const w = c.farW * (.7 + r1() * .6);
+        px(x, groundY - h, w, h, c.far);
+        for (let wy = 8; wy < h - 6; wy += 11) {
+          for (let wx = 5; wx < w - 5; wx += 9) {
+            if (r1() < .32) px(x + wx, groundY - h + wy, 2, 3, pick(c.win));
+          }
+        }
+      }
+
+      const r2 = mulberry(4000 + cityIdx * 131 + routeStage * 887);
+      const nearShift = (distance * .24) % 120;
+      for (let i = -1; i < 6; i++) {
+        const x = i * 120 - nearShift;
+        if (c.landmark && i % 3 === 1) {
+          drawLandmark(c.landmark, x + 40, groundY, 1);
+          continue;
+        }
+        const h = c.nearH[0] + r2() * (c.nearH[1] - c.nearH[0]);
+        const w = c.nearW * (.75 + r2() * .5);
+        px(x, groundY - h, w, h, c.near);
+        px(x, groundY - h, w, 2, c.glow);
+        for (let wy = 9; wy < h - 8; wy += 13) {
+          for (let wx = 6; wx < w - 6; wx += 11) {
+            if (r2() < .42) {
+              px(x + wx, groundY - h + wy, 3, 4, pick(c.win));
+              if (r2() < .25) px(x + wx - 1, groundY - h + wy - 1, 5, 6, c.neon + '33');
+            }
+          }
+        }
+        // 霓虹招牌
+        if (r2() < .5) {
+          const sh = 14 + r2() * 16;
+          px(x + 4, groundY - h + 6, 4, sh, c.neon);
+          px(x + w - 9, groundY - h + 14, 4, sh * .7, c.accent);
+        }
+      }
+    }
+
+    function drawGround() {
+      const c = city();
+      px(0, groundY, W, H - groundY, c.ground);
+      px(0, groundY, W, 2, c.glow);
+      px(0, groundY + 3, W, 1, '#f6f0d122');
+      const dash = (distance * 1.4) % 32;
+      for (let i = -1; i < 15; i++) {
+        const x = i * 32 - dash;
+        px(x, groundY + 12, 16, 2, '#2c355a');
+        px(x + 2, groundY + 22, 6, 1, c.landmark === 'la' ? '#63465d' : '#1e2646');
+      }
+      // 跑道边缘的像素反光与城市色彩呼应
+      px(0, groundY + 5, W, 1, '#ffffff12');
+      const glint = (distance * 2.3) % 80;
+      for (let i = 0; i < 6; i++) px((i * 80 - glint + W) % W, groundY + 7, 3, 1, c.accent + '88');
+      px(0, groundY + 27, W, 1, '#1e2646');
+    }
+
+    function drawStarsField() {
+      for (const s of stars) {
+        if (s.taken) continue;
+        const b = Math.round(Math.sin(timeNow / 130 + s.spin) * 1.5);
+        const x = Math.round(s.x), y = Math.round(s.y + b);
+        const col = city().accent;
+        px(x - 1, y - 5, 3, 10, col);
+        px(x - 5, y - 1, 10, 3, col);
+        px(x - 3, y - 3, 7, 7, col);
+        px(x - 1, y - 2, 2, 3, '#fff6cf');
+      }
+    }
+
+    function drawObstacles() {
+      for (const o of obstacles) {
+        if (o.type === 'spike') {
+          px(o.x + 2, groundY - 5, 9, 5, '#ff72a9');
+          px(o.x + 4, groundY - 8, 5, 3, '#ff72a9');
+          px(o.x + 6, groundY - 11, 2, 3, '#ffd5e5');
+          px(o.x + 2, groundY - 2, 9, 2, '#a84778');
+        } else {
+          const c = o.type === 'tall' ? '#e97891' : '#f1a16f';
+          px(o.x, o.y, o.w, o.h, c);
+          px(o.x + 2, o.y + 2, o.w - 4, 3, '#ffd09b');
+          px(o.x + 3, o.y + 7, 2, 2, '#7d4969');
+          px(o.x + o.w - 5, o.y + 7, 2, 2, '#7d4969');
+          px(o.x + 2, o.y + o.h - 3, o.w - 4, 2, '#a65872');
+        }
+      }
+    }
+
+    function drawEnemy(e) {
+      const x = Math.round(e.x), y = Math.round(e.y);
+      if (e.stomped) {
+        px(x + 1, y + e.h - 5, e.w - 2, 5, '#7d4a63');
+        px(x + 3, y + e.h - 8, e.w - 6, 4, '#a9636f');
+        return;
+      }
+      const step = Math.floor(e.phase) % 2;
+
+      if (e.kind === 'walker') {
+        // 紫色小怪，可踩
+        px(x + 2, y + 4, 12, 8, '#8f6fd0');
+        px(x + 4, y + 1, 8, 5, '#b393ea');
+        px(x + 1, y + 5, 14, 4, '#b393ea');
+        px(x + 4, y + 7, 2, 3, '#2c1f42');
+        px(x + 10, y + 7, 2, 3, '#2c1f42');
+        px(x + 5, y + 11, 2, 1, '#e0d0ff');
+        px(x + 9, y + 11, 2, 1, '#e0d0ff');
+        if (step) { px(x + 3, y + 12, 4, 2, '#5f4591'); px(x + 10, y + 11, 4, 2, '#5f4591'); }
+        else { px(x + 2, y + 11, 4, 2, '#5f4591'); px(x + 11, y + 12, 4, 2, '#5f4591'); }
+      } else if (e.kind === 'spiker') {
+        // 尖刺甲：橙色带刺，不能踩
+        px(x + 3, y + 6, 10, 8, '#d8703f');
+        px(x + 4, y + 3, 8, 5, '#f09257');
+        px(x + 1, y + 8, 14, 4, '#f09257');
+        px(x + 5, y + 7, 2, 3, '#3a2016');
+        px(x + 9, y + 7, 2, 3, '#3a2016');
+        for (let i = 0; i < 5; i++) {
+          px(x + 1 + i * 3, y + 1, 2, 3, '#ffd7a8');
+          px(x + 2 + i * 3, y - 1, 1, 2, '#fff0d0');
+        }
+        px(x + 3, y + 13, 10, 1, '#a04f2a');
+      } else {
+        // 跳跃兽：青绿，会扑过来
+        const sq = e.vy < 0 ? 1 : 0;
+        px(x + 2, y + 5 + sq, 12, 9 - sq, '#4fc4a8');
+        px(x + 4, y + 2, 8, 5, '#72f1c4');
+        px(x + 1, y + 7, 14, 4, '#72f1c4');
+        px(x + 4, y + 8, 3, 3, '#173a33');
+        px(x + 9, y + 8, 3, 3, '#173a33');
+        px(x + 4, y + 8, 1, 1, '#eafff7');
+        px(x + 9, y + 8, 1, 1, '#eafff7');
+        px(x + 6, y + 12, 4, 1, '#2a6b5c');
+        // 后腿
+        px(x + 2, y + 13, 4, 3, '#3d9c86');
+        px(x + 10, y + 13, 4, 3, '#3d9c86');
+      }
+    }
+
+    function drawJets() {
+      for (const j of jets) {
+        const x = Math.round(j.x), y = Math.round(j.y);
+        const warning = j.state === 'tell';
+        const rushing = j.state === 'dash';
+        if (warning) {
+          const target = players.find(p => p.id === j.targetPlayer) || players[0];
+          const blink = .45 + .55 * Math.abs(Math.sin(timeNow / 65));
+          ctx.globalAlpha = blink;
+          for (let tx = target.x + 18; tx < x; tx += 11) px(tx, j.targetY + 6, 6, 2, '#ff5a5a');
+          px(target.x + 18, j.targetY + 2, 2, 10, '#ffb7c7');
+          ctx.globalAlpha = 1;
+        }
+        if ((warning || rushing) && Math.floor(timeNow / 75) % 2 === 0) {
+          px(x - 2, y - 2, j.w + 4, j.h + 4, warning ? '#ff5a5a22' : '#ff8b8b44');
+        }
+        // 尾焰
+        const fl = (rushing ? 10 : 4) + Math.sin(j.wing) * 2;
+        px(x + j.w - 2, y + 5, 5 + fl, 3, rushing ? '#ff5a5a' : '#ffb26b');
+        px(x + j.w + 1, y + 6, 3 + fl, 1, '#fff0c0');
+        // 机头朝左，与冲撞方向一致
+        px(x + 3, y + 4, 21, 7, rushing ? '#8d5477' : '#5a6288');
+        px(x + 4, y + 5, 16, 3, rushing ? '#e997a7' : '#7b84ad');
+        px(x, y + 6, 8, 3, '#5a6288');
+        px(x, y + 7, 3, 1, '#c5c9e6');
+        // 座舱
+        px(x + 6, y + 2, 7, 3, '#8fe6ff');
+        px(x + 6, y + 2, 4, 1, '#e8fbff');
+        // 机翼
+        px(x + 8, y + 9, 14, 2, '#464e70');
+        px(x + 10, y + 11, 10, 1, '#3a4160');
+        px(x + 9, y + 1, 12, 2, '#464e70');
+        px(x + 12, y, 8, 1, '#3a4160');
+        // 翼灯
+        px(x + 8, y + 11, 2, 1, rushing ? '#ff5a5a' : '#72f1c4');
+        px(x + 21, y + 1, 2, 1, rushing ? '#ffb0b0' : '#ff72a9');
+        px(x + 5, y + 10, 5, 3, '#2f3550');
+        if (warning) px(x + 3, y + 12, 2, 2, '#ff5a5a');
+      }
+    }
+
+    function drawParticles() {
+      for (const p of particles) {
+        ctx.globalAlpha = Math.min(1, p.life / 10);
+        px(p.x, p.y, p.s, p.s, p.color);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawHud() {
+      const c = city();
+      // 城市铭牌淡出
+      if (bannerTimer > 0) {
+        const a = Math.min(1, bannerTimer / 700);
+        ctx.globalAlpha = a;
+        const label = c.en;
+        const tw = textWidth(label, 2);
+        px(W / 2 - tw / 2 - 12, 46, tw + 24, 26, '#0a0f24cc');
+        px(W / 2 - tw / 2 - 12, 46, tw + 24, 2, c.neon);
+        textCenter(label, W / 2, 53, 2, '#ffffff');
+        ctx.globalAlpha = 1;
+      }
+      // 速度条
+      const spd = (speed - 2.8) / (6.6 - 2.8);
+      px(10, H - 9, 60, 3, '#243056');
+      px(10, H - 9, 60 * clamp(spd, 0, 1), 3, c.glow);
+      px(74, H - 11, 1, 7, '#243056');
+      if (livingPlayers().some(p => p.invuln > 0)) {
+        ctx.globalAlpha = .5 + .5 * Math.sin(timeNow / 60);
+        text('SHIELD', 10, H - 24, 1, c.glow);
+        ctx.globalAlpha = 1;
+      }
+      // 连踩计数：连续踩扁敌人时给出正反馈
+      if (stompCount > 1) {
+        textCenter('COMBO x' + stompCount, W / 2, 16, 1, c.accent);
+      }
+    }
+
+    function draw(time) {
+      ctx.save();
+      if (shake > 0) ctx.translate(rnd(-shake, shake) * .5, rnd(-shake / 2, shake / 2) * .5);
+      if (hitFlash > 0) {
+        ctx.fillStyle = '#ff72a9';
+        ctx.fillRect(0, 0, W, H);
+      }
+      drawSky();
+      drawSkyline();
+      drawGround();
+      drawStarsField();
+      drawObstacles();
+      for (const e of enemies) drawEnemy(e);
+      drawJets();
+      // 角色：双人拉开间距同行，P1 为龙娘，P2 为像素猫
+      if (state !== 'over') {
+        const displayPlayers = state === 'running' ? roster() : (gameMode === 'duo' ? players : [players[0]]);
+        for (const p of displayPlayers) {
+          if (!p.alive || (p.invuln > 0 && Math.floor(timeNow / 70) % 2 === 0)) continue;
+          const pose = !p.grounded ? 'jump' : (state === 'running' ? 'run' : 'idle');
+          ctx.globalAlpha = p.grounded ? .32 : .16;
+          px(p.x - 1, groundY - 1, 22, 2, '#04060f');
+          ctx.globalAlpha = 1;
+          if (p.id === 2 && gameMode === 'duo') drawCat(Math.round(p.x), Math.round(p.y), pose, p);
+          else drawDragon(Math.round(p.x), Math.round(p.y), pose, p);
+          if (gameMode === 'duo') {
+            ctx.globalAlpha = .85;
+            text('P' + p.id, p.x + 2, p.y - 18, 1, p.id === 1 ? '#72f1c4' : '#ff9dbd');
+            ctx.globalAlpha = 1;
+          }
+        }
+      }
+      drawParticles();
+      if (state === 'running') drawHud();
+      // 出错时把原因直接画在画面上，免去开控制台
+      if (fatal) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        px(0, 0, W, 22, '#3a0d1c');
+        px(0, 22, W, 1, '#ff72a9');
+        text(String(fatal).slice(0, 56), 6, 7, 1, '#ffd9ea');
+      }
+      ctx.restore();
+    }
+
+    /* ================================================================== *
+     *  主循环
+     * ================================================================== */
+    function frame(time) {
+      const dt = lastTime ? time - lastTime : 16.67;
+      lastTime = time;
+      // 夹住 dt，避免切换标签页回来时世界瞬移
+      update(clamp(dt, 0, 60));
+      draw(time);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    /* ================================================================== *
+     *  标题页装饰画（DOM canvas，与游戏本体同一套绘制函数之外的小场景）
+     * ================================================================== */
+    function drawTitleArt() {
+      const c2 = titleArt.getContext('2d');
+      const wo = W, ho = H;
+      // 复用主 ctx 会互相干扰，这里单独画一段简化的夜景 + 龙娘剪影
+      const grad = c2.createLinearGradient(0, 0, 0, 78);
+      grad.addColorStop(0, '#140f2e');
+      grad.addColorStop(1, '#3a2350');
+      c2.fillStyle = grad;
+      c2.fillRect(0, 0, 210, 78);
+      // 星
+      for (let i = 0; i < 26; i++) {
+        const x = (i * 37 + 11) % 210, y = (i * 13 + 5) % 46;
+        c2.fillStyle = i % 5 === 0 ? '#ffd36a' : '#e6ecff';
+        c2.globalAlpha = .4 + (i % 6) * .1;
+        c2.fillRect(x, y, i % 4 === 0 ? 2 : 1, i % 4 === 0 ? 2 : 1);
+      }
+      c2.globalAlpha = 1;
+      // 月
+      c2.fillStyle = '#f6e7b4';
+      c2.fillRect(166, 12, 17, 17);
+      c2.fillRect(163, 15, 23, 11);
+      // 天际线
+      c2.fillStyle = '#241a44';
+      const hs = [22, 34, 18, 40, 26, 31, 16];
+      for (let i = 0; i < 7; i++) c2.fillRect(i * 31 - 6, 58 - hs[i], 27, hs[i]);
+      c2.fillStyle = '#ff5f9e';
+      for (let i = 0; i < 7; i++) c2.fillRect(i * 31 - 3, 58 - hs[i] + 5, 2, 2);
+      c2.fillStyle = '#2e2050';
+      for (let i = 0; i < 6; i++) c2.fillRect(i * 38 - 10, 66 - (12 + (i * 7) % 12), 34, 12 + (i * 7) % 12);
+      // 地面
+      c2.fillStyle = '#12102a';
+      c2.fillRect(0, 66, 210, 12);
+      c2.fillStyle = '#72f1c4';
+      c2.fillRect(0, 66, 210, 1);
+      // 龙娘（缩略剪影版：白裙 + 淡紫角尾）
+      const bx = 84, by = 40;
+      c2.fillStyle = '#c3a8ee'; c2.fillRect(bx - 6, by + 12, 4, 6); c2.fillRect(bx - 8, by + 8, 5, 5);
+      c2.fillStyle = '#e9dcff'; c2.fillRect(bx - 4, by + 6, 3, 3); c2.fillRect(bx - 7, by + 3, 3, 3);
+      c2.fillStyle = '#dcd3f5'; c2.fillRect(bx + 1, by + 6, 6, 15);
+      c2.fillStyle = '#fbd8c6'; c2.fillRect(bx + 4, by + 2, 9, 9);
+      c2.fillStyle = '#f0ecff'; c2.fillRect(bx + 3, by, 12, 4);
+      c2.fillRect(bx + 2, by + 1, 3, 11);
+      c2.fillStyle = '#c3a8ee'; c2.fillRect(bx + 4, by - 4, 3, 5); c2.fillRect(bx + 12, by - 2, 3, 3);
+      c2.fillStyle = '#a98ce0'; c2.fillRect(bx + 6, by + 6, 2, 2); c2.fillRect(bx + 11, by + 6, 2, 2);
+      c2.fillStyle = '#f4f1ff'; c2.fillRect(bx + 3, by + 11, 12, 8); c2.fillRect(bx + 2, by + 18, 14, 3);
+      c2.fillStyle = '#a7ecd4'; c2.fillRect(bx + 3, by + 17, 12, 1);
+      c2.fillStyle = '#fbd8c6'; c2.fillRect(bx + 4, by + 21, 4, 4); c2.fillRect(bx + 10, by + 21, 4, 4);
+      c2.fillStyle = '#fbf8ff'; c2.fillRect(bx + 3, by + 25, 5, 2); c2.fillRect(bx + 10, by + 25, 5, 2);
+    }
+    drawTitleArt();
+
+    /* ================================================================== *
+     *  输入
+     * ================================================================== */
+    function jumpPressed(playerId) {
+      if (state === 'title' || state === 'over') { startGame(); return; }
+      const p = roster().find(runner => runner.id === playerId && runner.alive);
+      if (p) p.jumpBuffer = 12;
+    }
+    function jumpReleased(playerId) {
+      const p = players.find(runner => runner.id === playerId);
+      if (p) p.jumpHeld = false;
+    }
+
+    // 每次按键只走 6 像素，且相对起点最多偏移 12 像素；角色不会挤到一起。
+    function nudgePlayer(playerId, direction) {
+      if (state !== 'running' || gameMode !== 'duo') return;
+      const p = players[playerId - 1];
+      if (!p || !p.alive) return;
+      const home = playerId === 1 ? 48 : 132;
+      const min = playerId === 1 ? home - 12 : home - 12;
+      const max = playerId === 1 ? home + 12 : home + 12;
+      p.x = clamp(p.x + direction * 6, min, max);
+    }
+
+    /* ------------------------------------------------------------------ *
+     *  启动兜底：点击按钮/画面/按空格/回车任意一种都能开始
+     * ------------------------------------------------------------------ */
+    function beginIfIdle() {
+      if (state !== 'title' && state !== 'over') return;
+      startGame();
+    }
+
+    startButton.addEventListener('click', beginIfIdle);
+    againButton.addEventListener('click', beginIfIdle);
+    exitConfirmButton.addEventListener('click', returnToTitle);
+    exitCancelButton.addEventListener('click', cancelExitPrompt);
+    soloModeButton.addEventListener('click', () => setMode('solo'));
+    duoModeButton.addEventListener('click', () => setMode('duo'));
+
+    // 捕获阶段全局兜底：点画面任何非按钮位置也能开始
+    window.addEventListener('pointerdown', (ev) => {
+      if (ev.target && ev.target.closest && ev.target.closest('button')) return;
+      beginIfIdle();
+    }, true);
+
+    canvas.addEventListener('pointerdown', () => {
+      if (state === 'running') { players[0].jumpHeld = true; jumpPressed(1); }
+      else beginIfIdle();
+    });
+    window.addEventListener('pointerup', () => jumpReleased(1));
+    window.addEventListener('keydown', (ev) => {
+      if (ev.code === 'Escape') {
+        ev.preventDefault();
+        if (state === 'paused') cancelExitPrompt();
+        else showExitPrompt();
+        return;
+      }
+      if (state === 'paused') {
+        if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(ev.code)) ev.preventDefault();
+        return;
+      }
+      if (gameMode === 'duo') {
+        const nudge = ev.code === 'KeyA' ? [1, 1]
+          : ev.code === 'KeyD' ? [1, -1]
+          : ev.code === 'ArrowRight' ? [2, 1]
+          : ev.code === 'ArrowLeft' ? [2, -1] : null;
+        if (nudge) {
+          ev.preventDefault();
+          if (!ev.repeat) nudgePlayer(nudge[0], nudge[1]);
+        }
+      }
+      const controlsPlayer = gameMode === 'duo'
+        ? (ev.code === 'Space' ? 1 : ev.code === 'ArrowUp' ? 2 : 0)
+        : (['Space', 'ArrowUp', 'KeyW'].includes(ev.code) ? 1 : 0);
+      if (controlsPlayer || ['Enter', 'NumpadEnter'].includes(ev.code)) {
+        ev.preventDefault();
+        if (!ev.repeat) {
+          if (controlsPlayer) players[controlsPlayer - 1].jumpHeld = true;
+          if (controlsPlayer) jumpPressed(controlsPlayer);
+          else beginIfIdle();
+        }
+      }
+      if (ev.code === 'KeyR') { ev.preventDefault(); startGame(); }
+    }, { passive: false });
+    window.addEventListener('keyup', (ev) => {
+      if (ev.code === 'Space') jumpReleased(1);
+      if (ev.code === 'ArrowUp' && gameMode === 'duo') jumpReleased(2);
+      else if (ev.code === 'ArrowUp' || ev.code === 'KeyW') jumpReleased(1);
+    });
+    window.addEventListener('blur', () => { jumpReleased(1); jumpReleased(2); });
+    window.addEventListener('error', (ev) => fatal = String(ev.message || 'script error'));
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) lastTime = 0; });
+  })();
+  </script>
+</body>
+</html>
